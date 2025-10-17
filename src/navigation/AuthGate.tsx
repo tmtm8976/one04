@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, AppState, BackHandler, View } from 'react-native';
+import { ActivityIndicator, AppState, View, BackHandler } from 'react-native';
 import * as Keychain from 'react-native-keychain';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -10,7 +10,7 @@ import { Login } from '../screens/auth/Login';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { login as loginAction } from '../store/slices/authSlice';
 import AllProducts from '../screens/AllProducts/AllProducts';
-import NetInfoComp from '../context/NetInfoComp';
+import NetInfoComp from '../components/NetInfoComp';
 import ProductDetails from '../screens/ProductDetails/ProductDetails';
 import LogoutScreen from '../screens/Logout/LogoutScreen';
 import { colors } from '../styles/colors';
@@ -79,9 +79,11 @@ const NavigatorContainer = () => {
         }));
         return true;
       }
-    } catch (e) {
+      
       BackHandler.exitApp();
-      console.log(e);
+    } catch (e) {
+      console.log('Biometric verify failed:', e);
+      BackHandler.exitApp();
     }
     return false;
   };
@@ -97,6 +99,7 @@ const NavigatorContainer = () => {
           service: 'service_key',
         });
         if (!hasCredintials) {
+          setCheckingAuth(false);
           return;
         }
         setIsLocked(true);
@@ -129,11 +132,10 @@ const NavigatorContainer = () => {
             setIsLocked(false);
           } catch (e) {
             console.warn('Failed to read user meta from keychain:', e);
-            setIsLocked(false);
             BackHandler.exitApp();
           }
         } else {
-          setIsLocked(false);
+          BackHandler.exitApp();
         }
 
         if (hasCredintials) {
@@ -149,7 +151,6 @@ const NavigatorContainer = () => {
                 }
               } finally {
                 running = false;
-                setIsLocked(false);
               }
             })();
           }, 10000);
@@ -166,7 +167,7 @@ const NavigatorContainer = () => {
       cancelled = true;
       if (intervalId) clearInterval(intervalId);
     };
-  }, [authenticated]);
+  }, [authenticated, AppState.currentState]);
 
   if (checkingAuth || isLocked) {
     return (
