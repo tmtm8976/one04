@@ -37,15 +37,21 @@ const HomeTabs = () => (
       tabBarActiveTintColor: colors.accent.primary,
       tabBarInactiveTintColor: colors.text.secondary,
       tabBarIcon: ({ color, size, focused }) => {
-        const iconName = route.name === 'Products'
-          ? 'shopping-bag'
-          : 'log-out';
+        const iconName = route.name === 'Products' ? 'shopping-bag' : 'log-out';
         return <Lucide name={iconName} size={size ?? 20} color={color} />;
       },
     })}
   >
-    <Tab.Screen name="Products" component={HomeScreens} options={{ title: 'Products' }} />
-    <Tab.Screen name="Logout" component={LogoutScreen} options={{ title: 'Logout' }} />
+    <Tab.Screen
+      name="Products"
+      component={HomeScreens}
+      options={{ title: 'Products' }}
+    />
+    <Tab.Screen
+      name="Logout"
+      component={LogoutScreen}
+      options={{ title: 'Logout' }}
+    />
   </Tab.Navigator>
 );
 
@@ -103,58 +109,49 @@ const NavigatorContainer = () => {
     checkStoredToken();
   }, []);
 
-  // useEffect(() => {
-  //   let interval: NodeJS.Timeout;
-  //   if (authenticated) {
-  //     //  if on foreground, ask for biometric
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (authenticated) {
+      //  if on foreground, ask for biometric
 
-  //     const onForeground = async () => {
-  //       try {
-  //         const hasPassword = await Keychain.hasGenericPassword({
-  //           service: 'service_key',
-  //         });
+      const checkBiometric = async () => {
+        try {
+          const hasPassword = await Keychain.hasGenericPassword({
+            service: 'service_key',
+          });
 
-  //         if (!hasPassword) {
-  //           console.log('No token found');
-  //           setCheckingAuth(false);
-  //           return;
-  //         }
-  //         const creds = await Keychain.getGenericPassword({
-  //           service: 'service_key',
-  //           accessControl:
-  //             Keychain.ACCESS_CONTROL.BIOMETRY_ANY_OR_DEVICE_PASSCODE,
-  //         });
+          if (!hasPassword) {
+            console.log('No token found');
+            setCheckingAuth(false);
+            return;
+          }
+          const creds = await Keychain.getGenericPassword({
+            service: 'service_key',
+            accessControl:
+              Keychain.ACCESS_CONTROL.BIOMETRY_ANY_OR_DEVICE_PASSCODE,
+          });
 
-  //         console.log('creds', creds);
+          console.log('creds', creds);
 
-  //         if (creds && creds.password) {
-  //           setIsLocked(false);
-  //         }
-  //       } catch (error) {
-  //         console.log('No token found or biometric failed:', error);
-  //       }
-  //     };
+          if (creds && creds.password) {
+            setIsLocked(false);
+          }
+        } catch (error) {
+          console.log('No token found or biometric failed:', error);
+        }
+      };
 
-  //     const onBackground = () => {
-  //       setIsLocked(true);
-  //     };
+      interval = setInterval(() => {
+        //  10 seconds
+        setIsLocked(true);
+        checkBiometric();
+      }, 10000);
 
-  //     interval = setInterval(() => {
-  //       //  10 seconds
-  //       setIsLocked(true);
-  //       if (AppState.currentState === 'active') {
-  //         onForeground();
-  //       } else {
-  //         onBackground();
-  //       }
-  //     }, 10000);
-
-  //     console.log(AppState.currentState);
-  //     return () => {
-  //       clearInterval(interval);
-  //     };
-  //   }
-  // }, [authenticated, AppState.currentState]);
+      return () => {
+        clearInterval(interval);
+      };
+    }
+  }, [authenticated]);
 
   if (checkingAuth || isLocked) {
     return (
