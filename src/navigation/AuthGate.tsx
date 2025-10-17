@@ -146,6 +146,7 @@ const NavigatorContainer = () => {
     try {
       const creds = (await Keychain.getGenericPassword({
         service: 'service_key',
+        
         accessControl: Keychain.ACCESS_CONTROL.BIOMETRY_ANY_OR_DEVICE_PASSCODE,
       })) as any;
       if (creds && typeof creds.password === 'string') {
@@ -233,7 +234,7 @@ const NavigatorContainer = () => {
                 setCheckingAuth(false);
               }
             })();
-          }, 1000000000000000);
+          }, 10000);
         }
       } catch (error) {
         console.log('Auth init error:', error);
