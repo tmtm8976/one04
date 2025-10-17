@@ -1,7 +1,7 @@
 # I called this project 0ne04, A Very secure shopping app
 
-<iframe width="560" height="315" src="./Screencast%20from%202025-10-17%2021-31-14.webm" 
-title="YouTube video" frameborder="0" allowfullscreen></iframe>
+<iframe width="560" height="315" src="./demo.webm" 
+title="demo" frameborder="0" allowfullscreen></iframe>
 
 ## pre-requisites
 
@@ -34,6 +34,7 @@ title="YouTube video" frameborder="0" allowfullscreen></iframe>
 ```bash
  npm run android
 ```
+
 ## chosen category
 
 - groceries
@@ -43,12 +44,8 @@ title="YouTube video" frameborder="0" allowfullscreen></iframe>
 username: `emilys`
 password: `emilyspass`
 
-
-
 ## if i had more time
 
--  better error handling
+- better error handling
 - tests
 - more complex theming
-
-
