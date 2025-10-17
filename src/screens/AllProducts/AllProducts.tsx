@@ -10,6 +10,8 @@ import {
   View,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../../context/AuthContext';
+import { isSuperAdmin } from '../../utils';
 import { globalStyles as s } from '../../styles/globalStyles';
 import { colors } from '../../styles/colors';
 
@@ -36,6 +38,8 @@ export default function AllProducts() {
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const navigation = useNavigation<any>();
+  const { authUser } = useAuth();
+  const canDelete = isSuperAdmin(String(authUser?.id ?? ''));
 
   const headerTitle = useMemo(
     () => (selectedCategory === 'all' ? 'All products' : selectedCategory),
@@ -90,6 +94,10 @@ export default function AllProducts() {
   };
 
   const handleDelete = async (id: number) => {
+    if (!canDelete) {
+      Alert.alert('Not allowed', 'Only super admins can delete products.');
+      return;
+    }
     try {
       const res = await fetch(`${DUMMY_BASE}/products/${id}`, { method: 'DELETE' });
       const data = await res.json();
@@ -131,9 +139,11 @@ export default function AllProducts() {
         <Text style={s.smallText} numberOfLines={2}>{item.description}</Text>
         <Text style={[s.smallText, s.success]}>${item.price}</Text>
       </View>
-      <Pressable onPress={() => handleDelete(item.id)}>
-        <Text style={[s.smallText, s.error]}>Delete</Text>
-      </Pressable>
+      {canDelete && (
+        <Pressable onPress={() => handleDelete(item.id)}>
+          <Text style={[s.smallText, s.error]}>Delete</Text>
+        </Pressable>
+      )}
     </Pressable>
   );
 
