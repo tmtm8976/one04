@@ -3,14 +3,19 @@ import { ActivityIndicator, AppState, View } from 'react-native';
 import * as Keychain from 'react-native-keychain';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import Lucide from '@react-native-vector-icons/lucide';
 
 import { Login } from '../screens/auth/Login';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import AllProducts from '../screens/AllProducts/AllProducts';
 import NetInfoComp from '../context/NetInfoComp';
 import ProductDetails from '../screens/ProductDetails/ProductDetails';
+import LogoutScreen from '../screens/Logout/LogoutScreen';
+import { colors } from '../styles/colors';
 const AuthStack = createNativeStackNavigator();
 const HomeStack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
 
 const AuthScreens = () => (
   <AuthStack.Navigator screenOptions={{ headerShown: false }}>
@@ -25,10 +30,29 @@ const HomeScreens = () => (
   </HomeStack.Navigator>
 );
 
+const HomeTabs = () => (
+  <Tab.Navigator
+    screenOptions={({ route }) => ({
+      headerShown: false,
+      tabBarActiveTintColor: colors.accent.primary,
+      tabBarInactiveTintColor: colors.text.secondary,
+      tabBarIcon: ({ color, size, focused }) => {
+        const iconName = route.name === 'Products'
+          ? 'shopping-bag'
+          : 'log-out';
+        return <Lucide name={iconName} size={size ?? 20} color={color} />;
+      },
+    })}
+  >
+    <Tab.Screen name="Products" component={HomeScreens} options={{ title: 'Products' }} />
+    <Tab.Screen name="Logout" component={LogoutScreen} options={{ title: 'Logout' }} />
+  </Tab.Navigator>
+);
+
 const NavigatorContainer = () => {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [isLocked, setIsLocked] = useState(false);
-  const { authenticated, login } = useAuth();
+  const { authenticated, login, authUser } = useAuth();
 
   useEffect(() => {
     const checkStoredToken = async () => {
@@ -51,8 +75,22 @@ const NavigatorContainer = () => {
         console.log('creds', creds);
 
         if (creds && creds.password) {
+          let userMeta: any = null;
+          try {
+            const userMetaCreds = await Keychain.getGenericPassword({
+              service: 'user_meta',
+            });
+            if (userMetaCreds && userMetaCreds.password) {
+              userMeta = JSON.parse(userMetaCreds.password);
+            }
+          } catch (e) {
+            console.warn('Failed to read user meta from keychain:', e);
+          }
+
           login({
-            username: creds.username,
+            id: userMeta?.id,
+            name: userMeta?.name,
+            username: userMeta?.username ?? creds.username,
             token: creds.password,
           });
         }
@@ -129,7 +167,7 @@ const NavigatorContainer = () => {
   return (
     <NavigationContainer>
       <NetInfoComp />
-      {authenticated ? <HomeScreens /> : <AuthScreens />}
+      {authenticated ? <HomeTabs /> : <AuthScreens />}
     </NavigationContainer>
   );
 };

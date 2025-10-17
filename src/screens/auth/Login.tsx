@@ -79,6 +79,21 @@ export const Login = () => {
       service: 'background_token',
     });
 
+    try {
+      const userMeta = {
+        id: result?.id,
+        username: result?.username,
+        name: result?.firstName,
+        email: result?.email,
+        image: result?.image,
+      };
+      await Keychain.setGenericPassword('user_meta', JSON.stringify(userMeta), {
+        service: 'user_meta',
+      });
+    } catch (e) {
+      console.warn('Failed to persist user meta:', e);
+    }
+
     login({
       id: result?.id ?? '',
       name: result?.firstName ?? '',
