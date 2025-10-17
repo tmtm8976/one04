@@ -1,14 +1,18 @@
 import React from 'react';
 import { SafeAreaView, View, Text, Pressable } from 'react-native';
 import { globalStyles as s } from '../../styles/globalStyles';
-import { useAuth } from '../../context/AuthContext';
+import { useAppDispatch } from '../../store/hooks';
+import { logout as logoutAction } from '../../store/slices/authSlice';
+import * as Keychain from 'react-native-keychain';
 
 export default function LogoutScreen() {
-  const { logout } = useAuth();
+  const dispatch = useAppDispatch();
 
   const handleLogout = async () => {
     try {
-      await logout();
+      await Keychain.resetGenericPassword({ service: 'service_key' });
+      await Keychain.resetGenericPassword({ service: 'background_token' });
+      dispatch(logoutAction());
     } catch (e) {
       console.warn('Logout failed', e);
     }

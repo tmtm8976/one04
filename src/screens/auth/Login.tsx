@@ -12,7 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Keychain from 'react-native-keychain';
 import { colors } from '../../styles/colors';
 import config from '../../../config';
-import { useAuth } from '../../context/AuthContext';
+import { useAppDispatch } from '../../store/hooks';
+import { login as loginAction } from '../../store/slices/authSlice';
 
 export const Login = () => {
   const [fromData, setFormData] = useState({
@@ -25,7 +26,7 @@ export const Login = () => {
     username?: string;
     password?: string;
   }>({});
-  const { login } = useAuth();
+  const dispatch = useAppDispatch();
 
   const handleInputChange = (key: string, value: string) => {
     setFormData(prevFormData => ({
@@ -92,12 +93,12 @@ export const Login = () => {
       console.warn('Failed to persist user meta:', e);
     }
 
-    login({
+    dispatch(loginAction({
       id: result?.id ?? '',
       name: result?.firstName ?? '',
       username: result?.username ?? '',
       token: result.accessToken ?? '',
-    });
+    }));
   } catch (error: any) {
     console.error('Login error:', error.message, { error });
     Alert.alert('Error', error.message);

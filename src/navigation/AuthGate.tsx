@@ -7,7 +7,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Lucide from '@react-native-vector-icons/lucide';
 
 import { Login } from '../screens/auth/Login';
-import { AuthProvider, useAuth } from '../context/AuthContext';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { login as loginAction } from '../store/slices/authSlice';
 import AllProducts from '../screens/AllProducts/AllProducts';
 import NetInfoComp from '../context/NetInfoComp';
 import ProductDetails from '../screens/ProductDetails/ProductDetails';
@@ -58,7 +59,9 @@ const HomeTabs = () => (
 const NavigatorContainer = () => {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [isLocked, setIsLocked] = useState(false);
-  const { authenticated, login, authUser } = useAuth();
+  const dispatch = useAppDispatch();
+  const authenticated = useAppSelector(state => state.auth.authenticated);
+  const authUser = useAppSelector(state => state.auth.user);
 
   const verifyBiometric = async () => {
     try {
@@ -68,16 +71,15 @@ const NavigatorContainer = () => {
       })) as any;
       if (creds && typeof creds.password === 'string') {
         setIsLocked(false);
-        login({
+        dispatch(loginAction({
           id: authUser?.id,
           name: authUser?.name,
           username: authUser?.username,
           token: creds.password,
-        });
+        }));
         return true;
       }
     } catch (e) {
-      // biometric failed -> lock, but do NOT change authenticated here
       BackHandler.exitApp();
       console.log(e);
     }
@@ -91,10 +93,10 @@ const NavigatorContainer = () => {
 
     const init = async () => {
       try {
-        const has = await Keychain.hasGenericPassword({
+        const hasCredintials = await Keychain.hasGenericPassword({
           service: 'service_key',
         });
-        if (!has) {
+        if (!hasCredintials) {
           return;
         }
         setIsLocked(true);
@@ -117,12 +119,12 @@ const NavigatorContainer = () => {
             })) as any;
 
             if (unlocked && typeof unlocked.password === 'string') {
-              login({
+              dispatch(loginAction({
                 id: userMeta?.id,
                 name: userMeta?.name,
                 username: userMeta?.username ?? unlocked.username,
                 token: unlocked.password,
-              });
+              }));
             }
             setIsLocked(false);
           } catch (e) {
@@ -132,11 +134,9 @@ const NavigatorContainer = () => {
           }
         } else {
           setIsLocked(false);
-          BackHandler.exitApp();
         }
 
-        // Re-verify on foreground to relock/unlock
-        if (has) {
+        if (hasCredintials) {
           intervalId = setInterval(() => {
             if (running) return;
             running = true;
@@ -185,11 +185,7 @@ const NavigatorContainer = () => {
 };
 
 const AuthGate = () => {
-  return (
-    <AuthProvider>
-      <NavigatorContainer />
-    </AuthProvider>
-  );
+  return <NavigatorContainer />;
 };
 
 export default AuthGate;

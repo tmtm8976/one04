@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useAuth } from '../../context/AuthContext';
+import { useAppSelector } from '../../store/hooks';
 import { isSuperAdmin } from '../../utils';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { globalStyles as s } from '../../styles/globalStyles';
@@ -39,7 +39,7 @@ export default function AllProducts() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [listData, setListData] = useState<Product[]>([]);
   const navigation = useNavigation<any>();
-  const { authUser } = useAuth();
+  const authUser = useAppSelector(state => state.auth.user);
   const canDelete = isSuperAdmin(String(authUser?.id ?? ''));
 
   const headerTitle = useMemo(
