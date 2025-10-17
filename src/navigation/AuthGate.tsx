@@ -63,58 +63,58 @@ const NavigatorContainer = () => {
     checkStoredToken();
   }, []);
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (authenticated) {
-      //  if on foreground, ask for biometric
+  // useEffect(() => {
+  //   let interval: NodeJS.Timeout;
+  //   if (authenticated) {
+  //     //  if on foreground, ask for biometric
 
-      const onForeground = async () => {
-        try {
-          const hasPassword = await Keychain.hasGenericPassword({
-            service: 'service_key',
-          });
+  //     const onForeground = async () => {
+  //       try {
+  //         const hasPassword = await Keychain.hasGenericPassword({
+  //           service: 'service_key',
+  //         });
 
-          if (!hasPassword) {
-            console.log('No token found');
-            setCheckingAuth(false);
-            return;
-          }
-          const creds = await Keychain.getGenericPassword({
-            service: 'service_key',
-            accessControl:
-              Keychain.ACCESS_CONTROL.BIOMETRY_ANY_OR_DEVICE_PASSCODE,
-          });
+  //         if (!hasPassword) {
+  //           console.log('No token found');
+  //           setCheckingAuth(false);
+  //           return;
+  //         }
+  //         const creds = await Keychain.getGenericPassword({
+  //           service: 'service_key',
+  //           accessControl:
+  //             Keychain.ACCESS_CONTROL.BIOMETRY_ANY_OR_DEVICE_PASSCODE,
+  //         });
 
-          console.log('creds', creds);
+  //         console.log('creds', creds);
 
-          if (creds && creds.password) {
-            setIsLocked(false);
-          }
-        } catch (error) {
-          console.log('No token found or biometric failed:', error);
-        }
-      };
+  //         if (creds && creds.password) {
+  //           setIsLocked(false);
+  //         }
+  //       } catch (error) {
+  //         console.log('No token found or biometric failed:', error);
+  //       }
+  //     };
 
-      const onBackground = () => {
-        setIsLocked(true);
-      };
+  //     const onBackground = () => {
+  //       setIsLocked(true);
+  //     };
 
-      interval = setInterval(() => {
-        //  10 seconds
-        setIsLocked(true);
-        if (AppState.currentState === 'active') {
-          onForeground();
-        } else {
-          onBackground();
-        }
-      }, 10000);
+  //     interval = setInterval(() => {
+  //       //  10 seconds
+  //       setIsLocked(true);
+  //       if (AppState.currentState === 'active') {
+  //         onForeground();
+  //       } else {
+  //         onBackground();
+  //       }
+  //     }, 10000);
 
-      console.log(AppState.currentState);
-      return () => {
-        clearInterval(interval);
-      };
-    }
-  }, [authenticated, AppState.currentState]);
+  //     console.log(AppState.currentState);
+  //     return () => {
+  //       clearInterval(interval);
+  //     };
+  //   }
+  // }, [authenticated, AppState.currentState]);
 
   if (checkingAuth || isLocked) {
     return (

@@ -1,8 +1,9 @@
 import React, { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
-import { StyleSheet, Text } from 'react-native';
-import Animated, { BounceIn } from 'react-native-reanimated';
+import { Modal, StyleSheet, Text, View } from 'react-native';
+import Lucide from '@react-native-vector-icons/lucide';
+import { colors } from '../styles/colors';
 
 const NetInfoComp = () => {
   const [hasInternet, setHasInternet] = useState(true);
@@ -14,41 +15,36 @@ const NetInfoComp = () => {
       });
 
       return () => unsubscribe();
-    }, [])
+    }, []),
   );
 
-  console.log("hasInternet", hasInternet);
-
-  return !hasInternet ? (
-    <Animated.View entering={BounceIn.delay(400)} style={styles.container}>
+  return (
+    <Modal visible={!hasInternet} animationType="slide" style={styles.container}>
       <Text style={styles.text1}>No Internet</Text>
       <Text numberOfLines={1} style={styles.text2}>
         Please check your internet connection
       </Text>
-    </Animated.View>
-  ) : null;
+      <Lucide name="wifi-off" size={154} color={colors.accent.primary} />
+    </Modal>
+  );
 };
-
 
 const styles = StyleSheet.create({
   container: {
     padding: 20,
     paddingVertical: 15,
-    position: 'absolute',
-    zIndex: 1,
-    marginHorizontal: 10,
-    alignSelf: 'center',
-    backgroundColor: 'white',
-    borderRadius: 10,
-    elevation: 5, // Android shadow
-    shadowColor: '#000', // iOS shadow
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    borderStartWidth: 5,
-    borderColor: 'red',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background.primary,
   },
-  text1: { textAlign: 'left', fontSize: 16, fontWeight: 'bold', marginBottom: 5 },
+  text1: {
+    textAlign: 'left',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,  
+  },
   text2: { textAlign: 'left', fontWeight: '500' },
 });
 
