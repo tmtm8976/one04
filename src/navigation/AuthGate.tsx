@@ -8,6 +8,7 @@ import { Login } from '../screens/auth/Login';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import AllProducts from '../screens/AllProducts/AllProducts';
 import NetInfoComp from '../context/NetInfoComp';
+import ProductDetails from '../screens/ProductDetails/ProductDetails';
 const AuthStack = createNativeStackNavigator();
 const HomeStack = createNativeStackNavigator();
 
@@ -20,6 +21,7 @@ const AuthScreens = () => (
 const HomeScreens = () => (
   <HomeStack.Navigator screenOptions={{ headerShown: false }}>
     <HomeStack.Screen name="AllProducts" component={AllProducts} />
+    <HomeStack.Screen name="ProductDetails" component={ProductDetails} />
   </HomeStack.Navigator>
 );
 

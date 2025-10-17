@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { globalStyles as s } from '../../styles/globalStyles';
 import { colors } from '../../styles/colors';
 
@@ -34,6 +35,7 @@ export default function AllProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const navigation = useNavigation<any>();
 
   const headerTitle = useMemo(
     () => (selectedCategory === 'all' ? 'All products' : selectedCategory),
@@ -113,7 +115,10 @@ export default function AllProducts() {
   }, []);
 
   const renderProduct = ({ item }: { item: Product }) => (
-    <View style={[s.card, { flexDirection: 'row', gap: 10, alignItems: 'center' }]}> 
+    <Pressable
+      onPress={() => navigation.navigate('ProductDetails', { product: item })}
+      style={[s.card, { flexDirection: 'row', gap: 10, alignItems: 'center' }]}
+    >
       <Image
         source={{ uri: item.thumbnail }}
         style={{ width: 60, height: 60, borderRadius: 6 }}
@@ -129,7 +134,7 @@ export default function AllProducts() {
       <Pressable onPress={() => handleDelete(item.id)}>
         <Text style={[s.smallText, s.error]}>Delete</Text>
       </Pressable>
-    </View>
+    </Pressable>
   );
 
   return (
