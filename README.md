@@ -1,7 +1,7 @@
 # 0ne04, A Very secure shopping app
 
 
-<video src="https://github.com/tmtm8976/one04/blob/main/demo.webm" width="320" height="240" controls></video>
+<video src="./demo.webm" width="320" height="240" controls></video>
 
 ## pre-requisites
 
