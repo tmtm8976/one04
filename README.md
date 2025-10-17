@@ -1,7 +1,7 @@
 # I called this project 0ne04, A Very secure shopping app
 
-<iframe width="560" height="315" src="./demo.webm" 
-title="demo" frameborder="0" allowfullscreen></iframe>
+
+<video src="./demo.webm" width="320" height="240" controls></video>
 
 ## pre-requisites
 
