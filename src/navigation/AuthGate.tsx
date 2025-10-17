@@ -68,24 +68,32 @@ const NavigatorContainer = () => {
       })) as any;
       if (creds && typeof creds.password === 'string') {
         setIsLocked(false);
+        login({
+          id: authUser?.id,
+          name: authUser?.name,
+          username: authUser?.username,
+          token: creds.password,
+        });
         return true;
       }
     } catch (e) {
       // biometric failed -> lock, but do NOT change authenticated here
       BackHandler.exitApp();
+      console.log(e);
     }
     return false;
   };
 
   useEffect(() => {
-    let appStateSub: { remove: () => void } | undefined;
     let cancelled = false;
     let intervalId: NodeJS.Timeout | undefined;
     let running = false;
 
     const init = async () => {
       try {
-        const has = await Keychain.hasGenericPassword({ service: 'service_key' });
+        const has = await Keychain.hasGenericPassword({
+          service: 'service_key',
+        });
         if (!has) {
           return;
         }
@@ -93,16 +101,19 @@ const NavigatorContainer = () => {
         const ok = await verifyBiometric();
 
         if (ok && !cancelled) {
-
           try {
-            const userMetaCreds = (await Keychain.getGenericPassword({ service: 'user_meta' })) as any;
-            const userMeta = userMetaCreds && typeof userMetaCreds.password === 'string'
-              ? JSON.parse(userMetaCreds.password)
-              : null;
+            const userMetaCreds = (await Keychain.getGenericPassword({
+              service: 'user_meta',
+            })) as any;
+            const userMeta =
+              userMetaCreds && typeof userMetaCreds.password === 'string'
+                ? JSON.parse(userMetaCreds.password)
+                : null;
 
             const unlocked = (await Keychain.getGenericPassword({
               service: 'service_key',
-              accessControl: Keychain.ACCESS_CONTROL.BIOMETRY_ANY_OR_DEVICE_PASSCODE,
+              accessControl:
+                Keychain.ACCESS_CONTROL.BIOMETRY_ANY_OR_DEVICE_PASSCODE,
             })) as any;
 
             if (unlocked && typeof unlocked.password === 'string') {
@@ -119,27 +130,23 @@ const NavigatorContainer = () => {
             setIsLocked(false);
             BackHandler.exitApp();
           }
-        } 
-        else {
+        } else {
           setIsLocked(false);
           BackHandler.exitApp();
         }
 
         // Re-verify on foreground to relock/unlock
-        appStateSub = AppState.addEventListener('change', state => {
-          if (state === 'active' && authenticated) {
-            verifyBiometric();
-          }
-        });
-        // Periodic re-verification every 10 seconds (only when authenticated)
-        if (authenticated) {
+        if (has) {
           intervalId = setInterval(() => {
             if (running) return;
             running = true;
             setIsLocked(true);
             (async () => {
               try {
-                await verifyBiometric();
+                let ok = await verifyBiometric();
+                if (!ok) {
+                  BackHandler.exitApp();
+                }
               } finally {
                 running = false;
                 setIsLocked(false);
@@ -157,7 +164,6 @@ const NavigatorContainer = () => {
     init();
     return () => {
       cancelled = true;
-      appStateSub?.remove?.();
       if (intervalId) clearInterval(intervalId);
     };
   }, [authenticated]);
