@@ -12,6 +12,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import { isSuperAdmin } from '../../utils';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { globalStyles as s } from '../../styles/globalStyles';
 import { colors } from '../../styles/colors';
 
@@ -32,11 +33,11 @@ type CategoryOption = {
 const DUMMY_BASE = 'https://dummyjson.com';
 
 export default function AllProducts() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false); // still used for categories
+  const [error, setError] = useState<string | null>(null); // still used for categories
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [listData, setListData] = useState<Product[]>([]);
   const navigation = useNavigation<any>();
   const { authUser } = useAuth();
   const canDelete = isSuperAdmin(String(authUser?.id ?? ''));
@@ -55,9 +56,9 @@ export default function AllProducts() {
       let options: CategoryOption[] = [];
       if (Array.isArray(data)) {
         if (data.length > 0 && typeof data[0] === 'string') {
-          options = (data as string[]).map((c) => ({ label: c, value: c }));
+          options = (data as string[]).map(c => ({ label: c, value: c }));
         } else if (data.length > 0 && typeof data[0] === 'object') {
-          options = (data as any[]).map((c) => ({
+          options = (data as any[]).map(c => ({
             label: c?.name ?? c?.slug ?? String(c),
             value: c?.slug ?? c?.name ?? String(c),
           }));
@@ -71,27 +72,42 @@ export default function AllProducts() {
   };
 
   const fetchProducts = async (category?: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const url = category && category !== 'all'
+    const url =
+      category && category !== 'all'
         ? `${DUMMY_BASE}/products/category/${encodeURIComponent(category)}`
         : `${DUMMY_BASE}/products`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Failed to load products');
-      const data = await res.json();
-      // Endpoint returns { products: Product[], total, skip, limit }
-      const items: Product[] = Array.isArray(data)
-        ? (data as Product[])
-        : (data.products as Product[]);
-      setProducts(items ?? []);
-    } catch (e: any) {
-      console.error(e);
-      setError(e?.message || 'Something went wrong');
-    } finally {
-      setLoading(false);
-    }
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to load products');
+    const data = await res.json();
+    const items: Product[] = Array.isArray(data)
+      ? (data as Product[])
+      : (data.products as Product[]);
+    return items ?? [];
   };
+
+  const productsQuery = useQuery<Product[], Error>({
+    queryKey: ['products', selectedCategory],
+    queryFn: () => fetchProducts(selectedCategory),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`${DUMMY_BASE}/products/${id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.isDeleted) {
+        throw new Error('Could not delete product (simulated API)');
+      }
+      return id;
+    },
+    onSuccess: async () => {
+      console.log('Deleted product', deleteMutation.variables);
+      setListData(prev =>
+        prev.filter(item => item.id !== deleteMutation.variables),
+      );
+    },
+  });
 
   const handleDelete = async (id: number) => {
     if (!canDelete) {
@@ -99,13 +115,7 @@ export default function AllProducts() {
       return;
     }
     try {
-      const res = await fetch(`${DUMMY_BASE}/products/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (res.ok && data?.isDeleted) {
-        setProducts(prev => prev.filter(p => p.id !== id));
-      } else {
-        Alert.alert('Delete failed', 'Could not delete product (simulated API)');
-      }
+      await deleteMutation.mutateAsync(id);
     } catch (e: any) {
       console.error(e);
       Alert.alert('Error', e?.message || 'Delete failed');
@@ -114,13 +124,12 @@ export default function AllProducts() {
 
   const handleSelectCategory = (category: string) => {
     setSelectedCategory(category);
-    fetchProducts(category);
   };
 
   useEffect(() => {
     fetchCategories();
-    fetchProducts('all');
-  }, []);
+    productsQuery.data && setListData(productsQuery.data);
+  }, [productsQuery.data]);
 
   const renderProduct = ({ item }: { item: Product }) => (
     <Pressable
@@ -133,14 +142,25 @@ export default function AllProducts() {
         resizeMode="cover"
       />
       <View style={{ flex: 1 }}>
-        <Text style={[s.text, { color: colors.text.secondary }]} numberOfLines={1}>
+        <Text
+          style={[s.text, { color: colors.text.secondary }]}
+          numberOfLines={1}
+        >
           {item.title}
         </Text>
-        <Text style={s.smallText} numberOfLines={2}>{item.description}</Text>
+        <Text style={s.smallText} numberOfLines={2}>
+          {item.description}
+        </Text>
         <Text style={[s.smallText, s.success]}>${item.price}</Text>
       </View>
       {canDelete && (
-        <Pressable onPress={() => handleDelete(item.id)}>
+        <Pressable
+          style={{ padding: 8 }}
+          onPress={e => {
+            e.stopPropagation();
+            handleDelete(item.id);
+          }}
+        >
           <Text style={[s.smallText, s.error]}>Delete</Text>
         </Pressable>
       )}
@@ -155,9 +175,8 @@ export default function AllProducts() {
         {/* Categories */}
         <FlatList
           data={categories}
-          keyExtractor={(c) => c.value}
+          keyExtractor={c => c.value}
           horizontal
-          
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: 8, paddingVertical: 8 }}
           renderItem={({ item }) => (
@@ -193,21 +212,23 @@ export default function AllProducts() {
         />
 
         {/* Products */}
-        {loading && (
+        {(loading || productsQuery.isLoading) && (
           <View style={{ paddingVertical: 20 }}>
             <ActivityIndicator size="small" />
           </View>
         )}
-        {error && (
-          <Text style={[s.smallText, s.error]}>{error}</Text>
+        {(error || productsQuery.error) && (
+          <Text style={[s.smallText, s.error]}>
+            {productsQuery.error ? productsQuery.error.message : error}
+          </Text>
         )}
-        {!loading && !error && (
+        {!loading && !error && productsQuery.data && (
           <FlatList
-            data={products}
-            keyExtractor={(item) => String(item.id)}
+            data={listData}
+            keyExtractor={item => String(item.id)}
             renderItem={renderProduct}
-            onRefresh={fetchProducts}
-            refreshing={loading}
+            onRefresh={productsQuery.refetch}
+            refreshing={productsQuery.isFetching}
             ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
             contentContainerStyle={{ paddingTop: 8, paddingBottom: 20 }}
           />

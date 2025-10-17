@@ -18,14 +18,14 @@ const NetInfoComp = () => {
     }, []),
   );
 
-  return (
-    <Modal visible={!hasInternet} animationType="slide" style={styles.container}>
+  return hasInternet ? null : (
+    <View style={styles.container}>
       <Text style={styles.text1}>No Internet</Text>
       <Text numberOfLines={1} style={styles.text2}>
         Please check your internet connection
       </Text>
-      <Lucide name="wifi-off" size={154} color={colors.accent.primary} />
-    </Modal>
+      <Lucide name="wifi-off" size={24} color={colors.accent.primary} />
+    </View>
   );
 };
 
