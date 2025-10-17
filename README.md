@@ -13,13 +13,13 @@ title="YouTube video" frameborder="0" allowfullscreen></iframe>
 1. clone the repo
 
 ```bash
- git clone https://github.com/one04-eg/transactions.git
+ git clone https://github.com/tmtm8976/one04.git
 ```
 
 2. navigate to the project directory
 
 ```bash
- cd transactions
+ cd one04
 ```
 
 3.  install dependencies
