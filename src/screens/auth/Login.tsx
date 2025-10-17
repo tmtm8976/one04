@@ -109,8 +109,8 @@ export const Login = () => {
 
 
   return (
-    <SafeAreaView style={s.safeArea}>
-      <View style={s.container}>
+    <SafeAreaView style={s.container}>
+      <View style={[s.card, {height: 'auto', paddingVertical: 15, paddingHorizontal: 15}]}>
         <Text style={s.header}>welcom back</Text>
         {/* welcome msg based on time */}
         <Text style={s.lable}>username</Text>

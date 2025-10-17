@@ -4,56 +4,57 @@ import { colors } from './colors';
 export const globalStyles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: colors.background.primary,
   },
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#1A1A1A',
+    paddingHorizontal: 10,
+    marginTop: 10,
+    backgroundColor: colors.background.secondary,
     display: 'flex',
     justifyContent: 'center',
   },
   text: {
     fontSize: 18,
-    color: '#FFFFFF',
+    color: colors.text.primary,
   },
   button: {
-    backgroundColor: '#6C5CE7',
+    backgroundColor: colors.interactive.primary,
     padding: 10,
     borderRadius: 5,
     alignItems: 'center',
   },
   buttonText: {
-    color: '#fff',
+    color: colors.text.inverse,
     fontSize: 16,
   },
   header: {
     textTransform: 'capitalize',
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: 'light',
     marginBottom: 20,
-    color: '#FFFFFF',
+    color: colors.text.primary,
   },
   lable: {
     fontSize: 16,
     marginBottom: 10,
-    color: '#FFFFFF',
+    color: colors.text.primary,
   },
   input: {
     height: 40,
-    borderColor: '#ccc',
+    borderColor: colors.border.default,
     borderWidth: 1,
     borderRadius: 5,
     paddingHorizontal: 10,
     marginBottom: 15,
-    color: '#FFFFFF',
+    color: colors.text.primary,
   },
   card: {
-    backgroundColor: '#2A2A2A',
-    borderRadius: 10,
+    backgroundColor: colors.background.primary,
+    borderRadius: 18,
+    height: 100,
     padding: 15,
-    marginBottom: 15,
-    shadowColor: '#000',
+    shadowColor: colors.shadow.medium,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -64,7 +65,7 @@ export const globalStyles = StyleSheet.create({
   },
   line: {
     height: 1,
-    backgroundColor: '#404040',
+    backgroundColor: colors.surface.divider,
     marginVertical: 15,
   },
   my10: {
@@ -105,11 +106,11 @@ export const globalStyles = StyleSheet.create({
   },
   smallText: {
     fontSize: 14,
-    color: '#B3B3B3',
+    color: colors.text.secondary,
   },
   smallerText: {
     fontSize: 12,
-    color: '#B3B3B3',
+    color: colors.text.secondary,
   },
   flexRow: {
     flexDirection: 'row',
@@ -122,7 +123,7 @@ export const globalStyles = StyleSheet.create({
     gap: 10,
   },
   link: {
-    color: '#00D4AA',
+    color: colors.interactive.primary,
   },
   between: {
     justifyContent: 'space-between',
@@ -131,7 +132,7 @@ export const globalStyles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   success: {
-    color: '#00C851',
+    color: colors.status.success,
   },
   alignCenter: {
     alignItems: 'center',

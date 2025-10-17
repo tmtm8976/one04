@@ -57,8 +57,9 @@ const HomeTabs = () => {
           // bacdrop: 'none'
           backgroundColor: colors.background.elevated,
           borderTopWidth: 0,
-          height: 60,
+          height: 72,
           paddingTop: 8,
+          marginTop: 0,
         },
       })}
     >

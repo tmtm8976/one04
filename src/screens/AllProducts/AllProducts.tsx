@@ -9,13 +9,13 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { useAppSelector } from '../../store/hooks';
 import { isSuperAdmin } from '../../utils';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { globalStyles as s } from '../../styles/globalStyles';
 import { colors } from '../../styles/colors';
 import config from '../../../config';
+import Lucide from '@react-native-vector-icons/lucide';
 
 type Product = {
   id: number;
@@ -41,7 +41,7 @@ export default function AllProducts(props: any) {
   const isGroceriesScreen = props?.route?.name === 'Groceries';
 
   useEffect(() => {
-    if ( isGroceriesScreen) {
+    if (isGroceriesScreen) {
       setSelectedCategory('groceries');
     }
   }, [isGroceriesScreen]);
@@ -137,92 +137,123 @@ export default function AllProducts(props: any) {
 
   const renderProduct = ({ item }: { item: Product }) => (
     <View
-      style={[s.card, { flexDirection: 'row', gap: 10, alignItems: 'center' }]}
+      style={[
+        {
+          flexDirection: 'column',
+          gap: 10,
+          alignItems: 'center',
+          flex: 1,
+          backgroundColor: colors.background.primary,
+          borderRadius: 12,
+          paddingTop: 10,
+        },
+      ]}
     >
       <Image
         source={{ uri: item.thumbnail }}
         style={{ width: 60, height: 60, borderRadius: 6 }}
         resizeMode="cover"
       />
-      <View style={{ flex: 1 }}>
+      <View
+        style={{
+          paddingHorizontal: 10,
+          paddingBottom: 10,
+        }}
+      >
         <Text
-          style={[s.text, { color: colors.text.secondary }]}
-          numberOfLines={1}
+          style={[
+            s.smallText,
+            { color: colors.text.primary, flexWrap: 'wrap' },
+          ]}
         >
           {item.title}
         </Text>
-        <Text style={s.smallText} numberOfLines={2}>
-          {item.description}
+        {/* show more  */}
+        <Text style={s.smallText}>
+          {item.description?.slice(0, 50) + '...'}
         </Text>
         <Text style={[s.smallText, s.success]}>${item.price}</Text>
       </View>
       {canDelete && (
         <Pressable
-          style={{ padding: 8 }}
+          style={{ padding: 8, position: 'absolute', bottom: 0, right: 0 }}
           onPress={e => {
             handleDelete(item.id);
           }}
         >
-          <Text style={[s.smallText, s.error]}>Delete</Text>
+          <Lucide name="trash" size={24} color={colors.text.secondary} />
         </Pressable>
       )}
     </View>
   );
 
   return (
-    <SafeAreaView style={s.safeArea}>
-      <View style={s.container}>
-        <Text style={s.header}>{headerTitle}</Text>
+    <SafeAreaView style={[s.safeArea]}>
+      <Text style={[s.header, { margin: 15 }]}>{headerTitle}</Text>
 
-        {/* Categories */}
-        {!isGroceriesScreen && (
-          <FlatList
-            data={categories}
-            keyExtractor={c => c.value}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 8, paddingVertical: 8 }}
-            renderItem={({ item }) => (
-              <Pressable
-                onPress={() => handleSelectCategory(item.value)}
+      {/* Categories */}
+      {!isGroceriesScreen && (
+        <FlatList
+          data={categories}
+          keyExtractor={c => c.value}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ maxHeight: 50 }}
+          contentContainerStyle={{
+            gap: 8,
+            paddingVertical: 8,
+            paddingHorizontal: 15,
+            height: 50,
+          }}
+          renderItem={({ item }) => (
+            <Pressable
+              onPress={() => handleSelectCategory(item.value)}
+              style={[
+                {
+                  paddingVertical: 8,
+                  paddingHorizontal: 12,
+                  height: 40,
+                  borderRadius: 16,
+                  marginBottom: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor:
+                    selectedCategory === item.value
+                      ? colors.accent.tertiary
+                      : colors.background.secondary,
+                },
+              ]}
+            >
+              <Text
                 style={[
-                  s.card,
+                  s.smallText,
                   {
-                    paddingVertical: 8,
-                    paddingHorizontal: 12,
-                    backgroundColor:
+                    color:
                       selectedCategory === item.value
-                        ? colors.accent.secondary
-                        : colors.background.elevated,
+                        ? colors.text.inverse
+                        : colors.text.secondary,
                   },
                 ]}
               >
-                <Text
-                  style={[
-                    s.smallText,
-                    {
-                      color:
-                        selectedCategory === item.value
-                          ? colors.text.primary
-                          : colors.text.secondary,
-                    },
-                  ]}
-                >
-                  {item.label}
-                </Text>
-              </Pressable>
-            )}
-          />
-        )}
+                {item.label}
+              </Text>
+            </Pressable>
+          )}
+        />
+      )}
+      <View style={s.container}>
         {/* Products */}
-        {productsQuery.isLoading && (
+        {(productsQuery.isLoading || deleteMutation.isPending) && (
           <View style={{ paddingVertical: 20 }}>
-            <ActivityIndicator size="small" />
+            <ActivityIndicator size="small" color={colors.accent.primary} />
           </View>
         )}
         {productsQuery.error && (
           <Text style={[s.smallText, s.error]}>
-            {productsQuery.error ? productsQuery.error.message : 'Error loading products'}
+            {productsQuery.error
+              ? productsQuery.error.message
+              : 'Error loading products'}
           </Text>
         )}
         {productsQuery.data && (
@@ -230,6 +261,8 @@ export default function AllProducts(props: any) {
             data={listData}
             keyExtractor={item => String(item.id)}
             renderItem={renderProduct}
+            numColumns={2}
+            columnWrapperStyle={{ gap: 10, flex: 1 }}
             onRefresh={productsQuery.refetch}
             refreshing={productsQuery.isFetching}
             ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
