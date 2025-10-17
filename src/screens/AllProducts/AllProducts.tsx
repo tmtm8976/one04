@@ -15,6 +15,7 @@ import { isSuperAdmin } from '../../utils';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { globalStyles as s } from '../../styles/globalStyles';
 import { colors } from '../../styles/colors';
+import config from '../../../config';
 
 type Product = {
   id: number;
@@ -30,17 +31,20 @@ type CategoryOption = {
   value: string;
 };
 
-const DUMMY_BASE = 'https://dummyjson.com';
-
-export default function AllProducts() {
-  const [loading, setLoading] = useState(false); // still used for categories
-  const [error, setError] = useState<string | null>(null); // still used for categories
+export default function AllProducts(props: any) {
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [listData, setListData] = useState<Product[]>([]);
-  const navigation = useNavigation<any>();
   const authUser = useAppSelector(state => state.auth.user);
   const canDelete = isSuperAdmin(String(authUser?.id ?? ''));
+
+  const isGroceriesScreen = props?.route?.name === 'Groceries';
+
+  useEffect(() => {
+    if ( isGroceriesScreen) {
+      setSelectedCategory('groceries');
+    }
+  }, [isGroceriesScreen]);
 
   const headerTitle = useMemo(
     () => (selectedCategory === 'all' ? 'All products' : selectedCategory),
@@ -49,7 +53,7 @@ export default function AllProducts() {
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch(`${DUMMY_BASE}/products/categories`);
+      const res = await fetch(`${config.API_URL}/products/categories`);
       if (!res.ok) throw new Error('Failed to load categories');
       const data = await res.json();
       // Normalize into {label, value} to avoid rendering raw objects
@@ -74,8 +78,8 @@ export default function AllProducts() {
   const fetchProducts = async (category?: string) => {
     const url =
       category && category !== 'all'
-        ? `${DUMMY_BASE}/products/category/${encodeURIComponent(category)}`
-        : `${DUMMY_BASE}/products`;
+        ? `${config.API_URL}/products/category/${encodeURIComponent(category)}`
+        : `${config.API_URL}/products`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('Failed to load products');
     const data = await res.json();
@@ -92,7 +96,7 @@ export default function AllProducts() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`${DUMMY_BASE}/products/${id}`, {
+      const res = await fetch(`${config.API_URL}/products/${id}`, {
         method: 'DELETE',
       });
       const data = await res.json();
@@ -127,13 +131,12 @@ export default function AllProducts() {
   };
 
   useEffect(() => {
-    fetchCategories();
+    if (!isGroceriesScreen) fetchCategories();
     productsQuery.data && setListData(productsQuery.data);
   }, [productsQuery.data]);
 
   const renderProduct = ({ item }: { item: Product }) => (
-    <Pressable
-      onPress={() => navigation.navigate('ProductDetails', { product: item })}
+    <View
       style={[s.card, { flexDirection: 'row', gap: 10, alignItems: 'center' }]}
     >
       <Image
@@ -157,14 +160,13 @@ export default function AllProducts() {
         <Pressable
           style={{ padding: 8 }}
           onPress={e => {
-            e.stopPropagation();
             handleDelete(item.id);
           }}
         >
           <Text style={[s.smallText, s.error]}>Delete</Text>
         </Pressable>
       )}
-    </Pressable>
+    </View>
   );
 
   return (
@@ -173,56 +175,57 @@ export default function AllProducts() {
         <Text style={s.header}>{headerTitle}</Text>
 
         {/* Categories */}
-        <FlatList
-          data={categories}
-          keyExtractor={c => c.value}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8, paddingVertical: 8 }}
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() => handleSelectCategory(item.value)}
-              style={[
-                s.card,
-                {
-                  paddingVertical: 8,
-                  paddingHorizontal: 12,
-                  backgroundColor:
-                    selectedCategory === item.value
-                      ? colors.accent.secondary
-                      : colors.background.elevated,
-                },
-              ]}
-            >
-              <Text
+        {!isGroceriesScreen && (
+          <FlatList
+            data={categories}
+            keyExtractor={c => c.value}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8, paddingVertical: 8 }}
+            renderItem={({ item }) => (
+              <Pressable
+                onPress={() => handleSelectCategory(item.value)}
                 style={[
-                  s.smallText,
+                  s.card,
                   {
-                    color:
+                    paddingVertical: 8,
+                    paddingHorizontal: 12,
+                    backgroundColor:
                       selectedCategory === item.value
-                        ? colors.text.primary
-                        : colors.text.secondary,
+                        ? colors.accent.secondary
+                        : colors.background.elevated,
                   },
                 ]}
               >
-                {item.label}
-              </Text>
-            </Pressable>
-          )}
-        />
-
+                <Text
+                  style={[
+                    s.smallText,
+                    {
+                      color:
+                        selectedCategory === item.value
+                          ? colors.text.primary
+                          : colors.text.secondary,
+                    },
+                  ]}
+                >
+                  {item.label}
+                </Text>
+              </Pressable>
+            )}
+          />
+        )}
         {/* Products */}
-        {(loading || productsQuery.isLoading) && (
+        {productsQuery.isLoading && (
           <View style={{ paddingVertical: 20 }}>
             <ActivityIndicator size="small" />
           </View>
         )}
-        {(error || productsQuery.error) && (
+        {productsQuery.error && (
           <Text style={[s.smallText, s.error]}>
-            {productsQuery.error ? productsQuery.error.message : error}
+            {productsQuery.error ? productsQuery.error.message : 'Error loading products'}
           </Text>
         )}
-        {!loading && !error && productsQuery.data && (
+        {productsQuery.data && (
           <FlatList
             data={listData}
             keyExtractor={item => String(item.id)}

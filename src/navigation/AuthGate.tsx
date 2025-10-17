@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, AppState, View, BackHandler } from 'react-native';
+import {
+  ActivityIndicator,
+  AppState,
+  View,
+  BackHandler,
+  Pressable,
+  Text,
+} from 'react-native';
 import * as Keychain from 'react-native-keychain';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -8,14 +15,12 @@ import Lucide from '@react-native-vector-icons/lucide';
 
 import { Login } from '../screens/auth/Login';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { login as loginAction } from '../store/slices/authSlice';
+import { login as loginAction, logout } from '../store/slices/authSlice';
 import AllProducts from '../screens/AllProducts/AllProducts';
 import NetInfoComp from '../components/NetInfoComp';
-import ProductDetails from '../screens/ProductDetails/ProductDetails';
-import LogoutScreen from '../screens/Logout/LogoutScreen';
 import { colors } from '../styles/colors';
+import { globalStyles as s } from '../styles/globalStyles';
 const AuthStack = createNativeStackNavigator();
-const HomeStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const AuthScreens = () => (
@@ -24,37 +29,58 @@ const AuthScreens = () => (
   </AuthStack.Navigator>
 );
 
-const HomeScreens = () => (
-  <HomeStack.Navigator screenOptions={{ headerShown: false }}>
-    <HomeStack.Screen name="AllProducts" component={AllProducts} />
-    <HomeStack.Screen name="ProductDetails" component={ProductDetails} />
-  </HomeStack.Navigator>
-);
+const HomeTabs = () => {
+  const dispatch = useAppDispatch();
 
-const HomeTabs = () => (
-  <Tab.Navigator
-    screenOptions={({ route }) => ({
-      headerShown: false,
-      tabBarActiveTintColor: colors.accent.primary,
-      tabBarInactiveTintColor: colors.text.secondary,
-      tabBarIcon: ({ color, size, focused }) => {
-        const iconName = route.name === 'Products' ? 'shopping-bag' : 'log-out';
-        return <Lucide name={iconName} size={size ?? 20} color={color} />;
-      },
-    })}
-  >
-    <Tab.Screen
-      name="Products"
-      component={HomeScreens}
-      options={{ title: 'Products' }}
-    />
-    <Tab.Screen
-      name="Logout"
-      component={LogoutScreen}
-      options={{ title: 'Logout' }}
-    />
-  </Tab.Navigator>
-);
+  const handleLogout = async () => {
+    try {
+      await Keychain.resetGenericPassword({ service: 'service_key' });
+      await Keychain.resetGenericPassword({ service: 'background_token' });
+      dispatch(logout());
+    } catch (e) {
+      console.warn('Logout failed', e);
+    }
+  };
+
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: colors.accent.primary,
+        tabBarInactiveTintColor: colors.text.secondary,
+        tabBarIcon: ({ color, size, focused }) => {
+          const iconName =
+            route.name === 'Products' ? 'shopping-bag' : 'shopping-cart';
+          return <Lucide name={iconName} size={size ?? 20} color={color} />;
+        },
+      })}
+    >
+      <Tab.Screen
+        name="Products"
+        component={AllProducts}
+        options={{ title: 'all products' }}
+      />
+
+      <Tab.Screen
+        name="Groceries"
+        component={AllProducts}
+        initialParams={{ category: 'groceries' }}
+      />
+      <Tab.Screen
+        name="Logout"
+        component={() => <></>}
+        options={{
+          title: 'Logout',
+          tabBarButton: () => (
+            <Pressable style={s.button} onPress={handleLogout}>
+              <Lucide name="log-out" size={20} color={colors.text.primary} />
+            </Pressable>
+          ),
+        }}
+      />
+    </Tab.Navigator>
+  );
+};
 
 const NavigatorContainer = () => {
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -71,15 +97,17 @@ const NavigatorContainer = () => {
       })) as any;
       if (creds && typeof creds.password === 'string') {
         setIsLocked(false);
-        dispatch(loginAction({
-          id: authUser?.id,
-          name: authUser?.name,
-          username: authUser?.username,
-          token: creds.password,
-        }));
+        dispatch(
+          loginAction({
+            id: authUser?.id,
+            name: authUser?.name,
+            username: authUser?.username,
+            token: creds.password,
+          }),
+        );
         return true;
       }
-      
+
       BackHandler.exitApp();
     } catch (e) {
       console.log('Biometric verify failed:', e);
@@ -122,12 +150,14 @@ const NavigatorContainer = () => {
             })) as any;
 
             if (unlocked && typeof unlocked.password === 'string') {
-              dispatch(loginAction({
-                id: userMeta?.id,
-                name: userMeta?.name,
-                username: userMeta?.username ?? unlocked.username,
-                token: unlocked.password,
-              }));
+              dispatch(
+                loginAction({
+                  id: userMeta?.id,
+                  name: userMeta?.name,
+                  username: userMeta?.username ?? unlocked.username,
+                  token: unlocked.password,
+                }),
+              );
             }
             setIsLocked(false);
           } catch (e) {
@@ -139,21 +169,21 @@ const NavigatorContainer = () => {
         }
 
         if (hasCredintials) {
-          intervalId = setInterval(() => {
-            if (running) return;
-            running = true;
-            setIsLocked(true);
-            (async () => {
-              try {
-                let ok = await verifyBiometric();
-                if (!ok) {
-                  BackHandler.exitApp();
-                }
-              } finally {
-                running = false;
-              }
-            })();
-          }, 10000);
+          // intervalId = setInterval(() => {
+          //   if (running) return;
+          //   running = true;
+          //   setIsLocked(true);
+          //   (async () => {
+          //     try {
+          //       let ok = await verifyBiometric();
+          //       if (!ok) {
+          //         BackHandler.exitApp();
+          //       }
+          //     } finally {
+          //       running = false;
+          //     }
+          //   })();
+          // }, 10000);
         }
       } catch (error) {
         console.log('Auth init error:', error);
