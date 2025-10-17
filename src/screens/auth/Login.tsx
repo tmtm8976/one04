@@ -62,8 +62,6 @@ export const Login = () => {
     if (!response.ok) {
       throw new Error(result.message || 'Login failed');
     }
-
-    console.log(result);
     
 
     await Keychain.setGenericPassword(fromData.username, result.accessToken, {

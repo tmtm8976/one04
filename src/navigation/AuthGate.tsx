@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, AppState, View } from 'react-native';
+import { ActivityIndicator, AppState, BackHandler, View } from 'react-native';
 import * as Keychain from 'react-native-keychain';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -60,97 +60,106 @@ const NavigatorContainer = () => {
   const [isLocked, setIsLocked] = useState(false);
   const { authenticated, login, authUser } = useAuth();
 
-  useEffect(() => {
-    const checkStoredToken = async () => {
-      try {
-        const hasPassword = await Keychain.hasGenericPassword({
-          service: 'service_key',
-        });
+  const verifyBiometric = async () => {
+    try {
+      const creds = (await Keychain.getGenericPassword({
+        service: 'service_key',
+        accessControl: Keychain.ACCESS_CONTROL.BIOMETRY_ANY_OR_DEVICE_PASSCODE,
+      })) as any;
+      if (creds && typeof creds.password === 'string') {
+        setIsLocked(false);
+        return true;
+      }
+    } catch (e) {
+      // biometric failed -> lock, but do NOT change authenticated here
+      BackHandler.exitApp();
+    }
+    return false;
+  };
 
-        if (!hasPassword) {
-          console.log('No token found');
-          setCheckingAuth(false);
+  useEffect(() => {
+    let appStateSub: { remove: () => void } | undefined;
+    let cancelled = false;
+    let intervalId: NodeJS.Timeout | undefined;
+    let running = false;
+
+    const init = async () => {
+      try {
+        const has = await Keychain.hasGenericPassword({ service: 'service_key' });
+        if (!has) {
           return;
         }
-        const creds = await Keychain.getGenericPassword({
-          service: 'service_key',
-          accessControl:
-            Keychain.ACCESS_CONTROL.BIOMETRY_ANY_OR_DEVICE_PASSCODE,
-        });
+        setIsLocked(true);
+        const ok = await verifyBiometric();
 
-        console.log('creds', creds);
+        if (ok && !cancelled) {
 
-        if (creds && creds.password) {
-          let userMeta: any = null;
           try {
-            const userMetaCreds = await Keychain.getGenericPassword({
-              service: 'user_meta',
-            });
-            if (userMetaCreds && userMetaCreds.password) {
-              userMeta = JSON.parse(userMetaCreds.password);
+            const userMetaCreds = (await Keychain.getGenericPassword({ service: 'user_meta' })) as any;
+            const userMeta = userMetaCreds && typeof userMetaCreds.password === 'string'
+              ? JSON.parse(userMetaCreds.password)
+              : null;
+
+            const unlocked = (await Keychain.getGenericPassword({
+              service: 'service_key',
+              accessControl: Keychain.ACCESS_CONTROL.BIOMETRY_ANY_OR_DEVICE_PASSCODE,
+            })) as any;
+
+            if (unlocked && typeof unlocked.password === 'string') {
+              login({
+                id: userMeta?.id,
+                name: userMeta?.name,
+                username: userMeta?.username ?? unlocked.username,
+                token: unlocked.password,
+              });
             }
+            setIsLocked(false);
           } catch (e) {
             console.warn('Failed to read user meta from keychain:', e);
+            setIsLocked(false);
+            BackHandler.exitApp();
           }
+        } 
+        else {
+          setIsLocked(false);
+          BackHandler.exitApp();
+        }
 
-          login({
-            id: userMeta?.id,
-            name: userMeta?.name,
-            username: userMeta?.username ?? creds.username,
-            token: creds.password,
-          });
+        // Re-verify on foreground to relock/unlock
+        appStateSub = AppState.addEventListener('change', state => {
+          if (state === 'active' && authenticated) {
+            verifyBiometric();
+          }
+        });
+        // Periodic re-verification every 10 seconds (only when authenticated)
+        if (authenticated) {
+          intervalId = setInterval(() => {
+            if (running) return;
+            running = true;
+            setIsLocked(true);
+            (async () => {
+              try {
+                await verifyBiometric();
+              } finally {
+                running = false;
+                setIsLocked(false);
+              }
+            })();
+          }, 10000);
         }
       } catch (error) {
-        console.log('No token found or biometric failed:', error);
+        console.log('Auth init error:', error);
+      } finally {
+        if (!cancelled) setCheckingAuth(false);
       }
-      setCheckingAuth(false);
     };
 
-    checkStoredToken();
-  }, []);
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (authenticated) {
-      //  if on foreground, ask for biometric
-
-      const checkBiometric = async () => {
-        try {
-          const hasPassword = await Keychain.hasGenericPassword({
-            service: 'service_key',
-          });
-
-          if (!hasPassword) {
-            console.log('No token found');
-            setCheckingAuth(false);
-            return;
-          }
-          const creds = await Keychain.getGenericPassword({
-            service: 'service_key',
-            accessControl:
-              Keychain.ACCESS_CONTROL.BIOMETRY_ANY_OR_DEVICE_PASSCODE,
-          });
-
-          console.log('creds', creds);
-
-          if (creds && creds.password) {
-            setIsLocked(false);
-          }
-        } catch (error) {
-          console.log('No token found or biometric failed:', error);
-        }
-      };
-
-      interval = setInterval(() => {
-        //  10 seconds
-        setIsLocked(true);
-        checkBiometric();
-      }, 10000);
-
-      return () => {
-        clearInterval(interval);
-      };
-    }
+    init();
+    return () => {
+      cancelled = true;
+      appStateSub?.remove?.();
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [authenticated]);
 
   if (checkingAuth || isLocked) {
