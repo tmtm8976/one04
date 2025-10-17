@@ -53,6 +53,13 @@ const HomeTabs = () => {
             route.name === 'Products' ? 'shopping-bag' : 'shopping-cart';
           return <Lucide name={iconName} size={size ?? 20} color={color} />;
         },
+        tabBarStyle: {
+          // bacdrop: 'none'
+          backgroundColor: colors.background.elevated,
+          borderTopWidth: 0,
+          height: 60,
+          paddingTop: 8,
+        },
       })}
     >
       <Tab.Screen
@@ -72,8 +79,17 @@ const HomeTabs = () => {
         options={{
           title: 'Logout',
           tabBarButton: () => (
-            <Pressable style={s.button} onPress={handleLogout}>
-              <Lucide name="log-out" size={20} color={colors.text.primary} />
+            <Pressable
+              style={{
+                padding: 8,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onPress={handleLogout}
+            >
+              <Lucide name="log-out" size={25} color={colors.text.secondary} />
+              <Text style={s.smallerText}>Logout</Text>
             </Pressable>
           ),
         }}
@@ -84,7 +100,6 @@ const HomeTabs = () => {
 
 const NavigatorContainer = () => {
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [isLocked, setIsLocked] = useState(false);
   const dispatch = useAppDispatch();
   const authenticated = useAppSelector(state => state.auth.authenticated);
   const authUser = useAppSelector(state => state.auth.user);
@@ -96,7 +111,6 @@ const NavigatorContainer = () => {
         accessControl: Keychain.ACCESS_CONTROL.BIOMETRY_ANY_OR_DEVICE_PASSCODE,
       })) as any;
       if (creds && typeof creds.password === 'string') {
-        setIsLocked(false);
         dispatch(
           loginAction({
             id: authUser?.id,
@@ -107,8 +121,6 @@ const NavigatorContainer = () => {
         );
         return true;
       }
-
-      BackHandler.exitApp();
     } catch (e) {
       console.log('Biometric verify failed:', e);
       BackHandler.exitApp();
@@ -130,7 +142,7 @@ const NavigatorContainer = () => {
           setCheckingAuth(false);
           return;
         }
-        setIsLocked(true);
+        setCheckingAuth(true);
         const ok = await verifyBiometric();
 
         if (ok && !cancelled) {
@@ -159,31 +171,31 @@ const NavigatorContainer = () => {
                 }),
               );
             }
-            setIsLocked(false);
           } catch (e) {
             console.warn('Failed to read user meta from keychain:', e);
             BackHandler.exitApp();
+          } finally {
+            setCheckingAuth(false);
           }
-        } else {
-          BackHandler.exitApp();
         }
 
         if (hasCredintials) {
-          // intervalId = setInterval(() => {
-          //   if (running) return;
-          //   running = true;
-          //   setIsLocked(true);
-          //   (async () => {
-          //     try {
-          //       let ok = await verifyBiometric();
-          //       if (!ok) {
-          //         BackHandler.exitApp();
-          //       }
-          //     } finally {
-          //       running = false;
-          //     }
-          //   })();
-          // }, 10000);
+          intervalId = setInterval(() => {
+            if (running) return;
+            running = true;
+            (async () => {
+              try {
+                setCheckingAuth(true);
+                let ok = await verifyBiometric();
+                if (!ok) {
+                  BackHandler.exitApp();
+                }
+              } finally {
+                running = false;
+                setCheckingAuth(false);
+              }
+            })();
+          }, 1000000000000000);
         }
       } catch (error) {
         console.log('Auth init error:', error);
@@ -193,13 +205,22 @@ const NavigatorContainer = () => {
     };
 
     init();
+
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      console.log('App State changed to', nextAppState);
+      if (nextAppState === 'active' && !authenticated) {
+        init();
+      }
+    });
+
     return () => {
+      subscription.remove();
       cancelled = true;
       if (intervalId) clearInterval(intervalId);
     };
   }, [authenticated, AppState.currentState]);
 
-  if (checkingAuth || isLocked) {
+  if (checkingAuth) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" />
