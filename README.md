@@ -1,4 +1,4 @@
-# I called this project 0ne04, A Very secure shopping app
+# 0ne04, A Very secure shopping app
 
 
 <video src="./demo.webm" width="320" height="240" controls></video>
