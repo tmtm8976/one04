@@ -6,6 +6,7 @@ import {
   BackHandler,
   Pressable,
   Text,
+  StatusBar,
 } from 'react-native';
 import * as Keychain from 'react-native-keychain';
 import { NavigationContainer } from '@react-navigation/native';
@@ -18,19 +19,48 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { login as loginAction, logout } from '../store/slices/authSlice';
 import AllProducts from '../screens/AllProducts/AllProducts';
 import NetInfoComp from '../components/NetInfoComp';
-import { colors } from '../styles/colors';
-import { globalStyles as s } from '../styles/globalStyles';
+import { useThemeColors, useThemeMode } from '../styles/theme';
+import { toggleTheme } from '../store/slices/themeSlice';
+
 const AuthStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-const AuthScreens = () => (
-  <AuthStack.Navigator screenOptions={{ headerShown: false }}>
-    <AuthStack.Screen name="Login" component={Login} />
-  </AuthStack.Navigator>
-);
+const AuthScreens = () => {
+  const dispatch = useAppDispatch();
+  const themeColors = useThemeColors();
+  const mode = useThemeMode();
+  return (
+    <AuthStack.Navigator
+      screenOptions={{
+        headerShown: true,
+        headerStyle: {
+          backgroundColor: themeColors.background.elevated,
+        },
+        headerTintColor: themeColors.text.primary,
+        headerRight: () => (
+          <Pressable
+            onPress={() => dispatch(toggleTheme())}
+            style={{ padding: 6 }}
+          >
+            <Lucide
+              name={mode === 'dark' ? 'sun' : 'moon'}
+              size={20}
+              color={themeColors.text.secondary}
+            />
+          </Pressable>
+        ),
+        headerTitle: 'Login',
+      }}
+    >
+      <AuthStack.Screen name="Login" component={Login} />
+    </AuthStack.Navigator>
+  );
+};
 
 const HomeTabs = () => {
   const dispatch = useAppDispatch();
+  const themeColors = useThemeColors();
+  const mode = useThemeMode();
 
   const handleLogout = async () => {
     try {
@@ -46,8 +76,8 @@ const HomeTabs = () => {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: colors.accent.primary,
-        tabBarInactiveTintColor: colors.text.secondary,
+        tabBarActiveTintColor: themeColors.accent.primary,
+        tabBarInactiveTintColor: themeColors.text.secondary,
         tabBarIcon: ({ color, size, focused }) => {
           const iconName =
             route.name === 'Products' ? 'shopping-bag' : 'shopping-cart';
@@ -55,7 +85,7 @@ const HomeTabs = () => {
         },
         tabBarStyle: {
           // bacdrop: 'none'
-          backgroundColor: colors.background.elevated,
+          backgroundColor: themeColors.background.elevated,
           borderTopWidth: 0,
           height: 72,
           paddingTop: 8,
@@ -89,8 +119,14 @@ const HomeTabs = () => {
               }}
               onPress={handleLogout}
             >
-              <Lucide name="log-out" size={25} color={colors.text.secondary} />
-              <Text style={s.smallerText}>Logout</Text>
+              <Lucide
+                name="log-out"
+                size={25}
+                color={themeColors.text.secondary}
+              />
+              <Text style={{ color: themeColors.text.secondary, fontSize: 12 }}>
+                Logout
+              </Text>
             </Pressable>
           ),
         }}
@@ -104,6 +140,7 @@ const NavigatorContainer = () => {
   const dispatch = useAppDispatch();
   const authenticated = useAppSelector(state => state.auth.authenticated);
   const authUser = useAppSelector(state => state.auth.user);
+  const themeColors = useThemeColors();
 
   const verifyBiometric = async () => {
     try {
@@ -223,12 +260,22 @@ const NavigatorContainer = () => {
 
   if (checkingAuth) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: themeColors.background.primary,
+        }}
+      >
+        <StatusBar
+          backgroundColor={themeColors.background.primary}
+          barStyle="dark-content"
+        />
+        <ActivityIndicator size="large" color={themeColors.accent.primary} />
       </View>
     );
   }
-
   return (
     <NavigationContainer>
       <NetInfoComp />

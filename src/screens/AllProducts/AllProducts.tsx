@@ -5,17 +5,19 @@ import {
   FlatList,
   Image,
   Pressable,
+  RefreshControl,
   SafeAreaView,
   Text,
   View,
 } from 'react-native';
-import { useAppSelector } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { isSuperAdmin } from '../../utils';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { globalStyles as s } from '../../styles/globalStyles';
-import { colors } from '../../styles/colors';
+import { useGlobalStyles } from '../../styles/globalStyles';
+import { useThemeColors, useThemeMode } from '../../styles/theme';
 import config from '../../../config';
 import Lucide from '@react-native-vector-icons/lucide';
+import { toggleTheme } from '../../store/slices/themeSlice';
 
 type Product = {
   id: number;
@@ -32,11 +34,15 @@ type CategoryOption = {
 };
 
 export default function AllProducts(props: any) {
+  const s = useGlobalStyles();
+  const colors = useThemeColors();
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [listData, setListData] = useState<Product[]>([]);
   const authUser = useAppSelector(state => state.auth.user);
   const canDelete = isSuperAdmin(String(authUser?.id ?? ''));
+  const dispatch = useAppDispatch();
+  const mode = useThemeMode();
 
   const isGroceriesScreen = props?.route?.name === 'Groceries';
 
@@ -189,16 +195,37 @@ export default function AllProducts(props: any) {
 
   return (
     <SafeAreaView style={[s.safeArea]}>
-      <Text style={[s.header, { margin: 15 }]}>{headerTitle}</Text>
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          margin: 15,
+        }}
+      >
+        <Text style={[s.header]}>{headerTitle}</Text>
+
+        <Pressable
+          onPress={() => dispatch(toggleTheme())}
+          style={{ padding: 6 }}
+        >
+          <Lucide
+            name={mode === 'dark' ? 'sun' : 'moon'}
+            size={20}
+            color={colors.text.secondary}
+          />
+        </Pressable>
+      </View>
 
       {/* Categories */}
       {!isGroceriesScreen && (
+        
         <FlatList
           data={categories}
           keyExtractor={c => c.value}
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={{ maxHeight: 50 }}
+          style={{ maxHeight: 50  }}
           contentContainerStyle={{
             gap: 8,
             paddingVertical: 8,
@@ -242,7 +269,7 @@ export default function AllProducts(props: any) {
           )}
         />
       )}
-      <View style={s.container}>
+      <View style={[s.container, {marginTop: 15}]}>
         {/* Products */}
         {(productsQuery.isLoading || deleteMutation.isPending) && (
           <View style={{ paddingVertical: 20 }}>
@@ -263,8 +290,12 @@ export default function AllProducts(props: any) {
             renderItem={renderProduct}
             numColumns={2}
             columnWrapperStyle={{ gap: 10, flex: 1 }}
-            onRefresh={productsQuery.refetch}
-            refreshing={productsQuery.isFetching}
+            refreshControl={
+              <RefreshControl
+                refreshing={productsQuery.isFetching}
+                onRefresh={productsQuery.refetch}
+              />
+            }
             ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
             contentContainerStyle={{ paddingTop: 8, paddingBottom: 20 }}
           />

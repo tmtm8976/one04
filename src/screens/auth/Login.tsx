@@ -7,15 +7,17 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { globalStyles as s } from '../../styles/globalStyles';
+import { useGlobalStyles } from '../../styles/globalStyles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Keychain from 'react-native-keychain';
-import { colors } from '../../styles/colors';
+import { useThemeColors } from '../../styles/theme';
 import config from '../../../config';
 import { useAppDispatch } from '../../store/hooks';
 import { login as loginAction } from '../../store/slices/authSlice';
 
 export const Login = () => {
+  const s = useGlobalStyles();
+  const colors = useThemeColors();
   const [fromData, setFormData] = useState({
     username: '',
     password: '',

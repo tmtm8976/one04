@@ -73,10 +73,10 @@ export const colors = {
 export const colors_dark = {
   // Primary Backgrounds
   background: {
-    primary: '#130f26', // Dark mode primary background
-    secondary: '#9145b6', // Slightly lighter for cards/modals
+    primary: '#222024', // Dark mode primary background
+    secondary: '#303030', // Slightly lighter for cards/modals
     tertiary: '#130f26', // Inputs/disabled
-    elevated: '#9145b6', // Floating elements, app bar
+    elevated: '#222024', // Floating elements, app bar
   },
 
   // Surface Colors
@@ -91,7 +91,7 @@ export const colors_dark = {
   // Text Colors
   text: {
     primary: '#ffffff', // Main text
-    secondary: '#ff98bf', // Secondary text
+    secondary: '#696969', // Secondary text
     tertiary: '#9145b6', // Placeholder/disabled
     inverse: '#130f26', // Text on light backgrounds
     hint: '#ff98bf', // Subtle text
