@@ -2,6 +2,10 @@
 
 <video src="./demo.webm" width="320" height="240" controls></video>
 
+## Android build
+
+- you can find android build [here](https://drive.google.com/file/d/1Fg-PTAmgaXGkiEbHPwJoqgXZK4NzNuGD/view?usp=sharing)
+
 ## pre-requisites
 
 - node
