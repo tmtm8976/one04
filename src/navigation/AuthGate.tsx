@@ -102,7 +102,6 @@ const HomeTabs = () => {
       <Tab.Screen name="Groceries" component={AllProducts} />
       <Tab.Screen
         name="Logout"
-        component={() => <></>}
         options={{
           title: 'Logout',
           tabBarButton: () => (
@@ -126,7 +125,9 @@ const HomeTabs = () => {
             </Pressable>
           ),
         }}
-      />
+      >
+        {() => null}
+      </Tab.Screen>
     </Tab.Navigator>
   );
 };
@@ -170,71 +171,55 @@ const NavigatorContainer = () => {
 
     const init = async () => {
       try {
-        const hasCredintials = await Keychain.hasGenericPassword({
-          service: 'service_key',
-        });
-        if (!hasCredintials) {
-          setCheckingAuth(false);
-          return;
-        }
-        setCheckingAuth(true);
-        const ok = await verifyBiometric();
+        if (!authenticated) {
+          const hasCredintials = await Keychain.hasGenericPassword({
+            service: 'service_key',
+          });
 
-        if (ok && !cancelled) {
-          try {
-            const userMetaCreds = (await Keychain.getGenericPassword({
-              service: 'user_meta',
-            })) as any;
-            const userMeta =
-              userMetaCreds && typeof userMetaCreds.password === 'string'
-                ? JSON.parse(userMetaCreds.password)
-                : null;
-
-            const unlocked = (await Keychain.getGenericPassword({
-              service: 'service_key',
-              accessControl:
-                Keychain.ACCESS_CONTROL.BIOMETRY_ANY_OR_DEVICE_PASSCODE,
-            })) as any;
-
-            if (
-              unlocked &&
-              typeof unlocked.password === 'string' &&
-              !authenticated
-            ) {
-              dispatch(
-                loginAction({
-                  id: userMeta?.id,
-                  name: userMeta?.name,
-                  username: userMeta?.username ?? unlocked.username,
-                  token: unlocked.password,
-                }),
-              );
-            }
-          } catch (e) {
-            console.warn('Failed to read user meta from keychain:', e);
-            BackHandler.exitApp();
-          } finally {
+          if (!hasCredintials) {
             setCheckingAuth(false);
+            return;
           }
-        }
+          setCheckingAuth(true);
+          {
+            const ok = await verifyBiometric();
 
-        if (hasCredintials) {
-          intervalId = setInterval(() => {
-            if (running) return;
-            running = true;
-            (async () => {
+            if (ok && !cancelled) {
               try {
-                setCheckingAuth(true);
-                let ok = await verifyBiometric();
-                if (!ok) {
-                  BackHandler.exitApp();
+                const userMetaCreds = (await Keychain.getGenericPassword({
+                  service: 'user_meta',
+                })) as any;
+                const userMeta =
+                  userMetaCreds && typeof userMetaCreds.password === 'string'
+                    ? JSON.parse(userMetaCreds.password)
+                    : null;
+
+                const unlocked = (await Keychain.getGenericPassword({
+                  service: 'service_key',
+                  accessControl:
+                    Keychain.ACCESS_CONTROL.BIOMETRY_ANY_OR_DEVICE_PASSCODE,
+                })) as any;
+
+                if (
+                  unlocked &&
+                  typeof unlocked.password === 'string' &&
+                  !authenticated
+                ) {
+                  dispatch(
+                    loginAction({
+                      id: userMeta?.id,
+                      name: userMeta?.name,
+                      username: userMeta?.username ?? unlocked.username,
+                      token: unlocked.password,
+                    }),
+                  );
                 }
-              } finally {
-                running = false;
-                setCheckingAuth(false);
+              } catch (e) {
+                console.warn('Failed to read user meta from keychain:', e);
+                BackHandler.exitApp();
               }
-            })();
-          }, 10000);
+            }
+          }
         }
       } catch (error) {
         console.log('Auth init error:', error);
@@ -245,10 +230,35 @@ const NavigatorContainer = () => {
 
     init();
 
+    const tick = async () => {
+      if (running) return;
+      running = true;
+      try {
+        setCheckingAuth(true);
+        const ok = await verifyBiometric();
+        if (!ok) {
+          BackHandler.exitApp();
+        }
+      } finally {
+        running = false;
+        setCheckingAuth(false);
+      }
+    };
+
+    if (authenticated) {
+      intervalId = setInterval(() => {
+        tick();
+      }, 10000);
+    }
+
     const subscription = AppState.addEventListener('change', nextAppState => {
       console.log('App State changed to', nextAppState);
       if (nextAppState === 'active') {
-        init();
+        if (authenticated) {
+          tick();
+        } else {
+          init();
+        }
       }
     });
 

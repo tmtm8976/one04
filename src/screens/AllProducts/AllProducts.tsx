@@ -141,6 +141,12 @@ export default function AllProducts(props: any) {
     productsQuery.data && setListData(productsQuery.data);
   }, [productsQuery.data]);
 
+  const onRefresh = async () => {
+    let newData = await productsQuery.refetch({ cancelRefetch: false });
+    setListData(newData?.data ?? []);
+  };
+  
+
   const renderProduct = ({ item }: { item: Product }) => (
     <View
       style={[
@@ -219,13 +225,12 @@ export default function AllProducts(props: any) {
 
       {/* Categories */}
       {!isGroceriesScreen && (
-        
         <FlatList
           data={categories}
           keyExtractor={c => c.value}
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={{ maxHeight: 50  }}
+          style={{ maxHeight: 50 }}
           contentContainerStyle={{
             gap: 8,
             paddingVertical: 8,
@@ -269,7 +274,7 @@ export default function AllProducts(props: any) {
           )}
         />
       )}
-      <View style={[s.container, {marginTop: 15}]}>
+      <View style={[s.container, { marginTop: 15 }]}>
         {/* Products */}
         {(productsQuery.isLoading || deleteMutation.isPending) && (
           <View style={{ paddingVertical: 20 }}>
@@ -293,7 +298,7 @@ export default function AllProducts(props: any) {
             refreshControl={
               <RefreshControl
                 refreshing={productsQuery.isFetching}
-                onRefresh={productsQuery.refetch}
+                onRefresh={onRefresh}
               />
             }
             ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
