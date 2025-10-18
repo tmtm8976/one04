@@ -7,6 +7,7 @@ import {
   Pressable,
   Text,
   StatusBar,
+  Modal,
 } from 'react-native';
 import * as Keychain from 'react-native-keychain';
 import { NavigationContainer } from '@react-navigation/native';
@@ -60,7 +61,6 @@ const AuthScreens = () => {
 const HomeTabs = () => {
   const dispatch = useAppDispatch();
   const themeColors = useThemeColors();
-  const mode = useThemeMode();
 
   const handleLogout = async () => {
     try {
@@ -99,11 +99,7 @@ const HomeTabs = () => {
         options={{ title: 'all products' }}
       />
 
-      <Tab.Screen
-        name="Groceries"
-        component={AllProducts}
-        initialParams={{ category: 'groceries' }}
-      />
+      <Tab.Screen name="Groceries" component={AllProducts} />
       <Tab.Screen
         name="Logout"
         component={() => <></>}
@@ -146,7 +142,7 @@ const NavigatorContainer = () => {
     try {
       const creds = (await Keychain.getGenericPassword({
         service: 'service_key',
-        
+
         accessControl: Keychain.ACCESS_CONTROL.BIOMETRY_ANY_OR_DEVICE_PASSCODE,
       })) as any;
       if (creds && typeof creds.password === 'string') {
@@ -200,7 +196,11 @@ const NavigatorContainer = () => {
                 Keychain.ACCESS_CONTROL.BIOMETRY_ANY_OR_DEVICE_PASSCODE,
             })) as any;
 
-            if (unlocked && typeof unlocked.password === 'string') {
+            if (
+              unlocked &&
+              typeof unlocked.password === 'string' &&
+              !authenticated
+            ) {
               dispatch(
                 loginAction({
                   id: userMeta?.id,
@@ -247,7 +247,7 @@ const NavigatorContainer = () => {
 
     const subscription = AppState.addEventListener('change', nextAppState => {
       console.log('App State changed to', nextAppState);
-      if (nextAppState === 'active' && !authenticated) {
+      if (nextAppState === 'active') {
         init();
       }
     });
@@ -259,9 +259,16 @@ const NavigatorContainer = () => {
     };
   }, [authenticated, AppState.currentState]);
 
-  if (checkingAuth) {
-    return (
-      <View
+  return (
+    <NavigationContainer>
+      <StatusBar
+        backgroundColor={themeColors.background.primary}
+        barStyle="dark-content"
+      />
+      <NetInfoComp />
+      {authenticated ? <HomeTabs /> : <AuthScreens />}
+      <Modal
+        visible={checkingAuth}
         style={{
           flex: 1,
           justifyContent: 'center',
@@ -269,18 +276,8 @@ const NavigatorContainer = () => {
           backgroundColor: themeColors.background.primary,
         }}
       >
-        <StatusBar
-          backgroundColor={themeColors.background.primary}
-          barStyle="dark-content"
-        />
         <ActivityIndicator size="large" color={themeColors.accent.primary} />
-      </View>
-    );
-  }
-  return (
-    <NavigationContainer>
-      <NetInfoComp />
-      {authenticated ? <HomeTabs /> : <AuthScreens />}
+      </Modal>
     </NavigationContainer>
   );
 };
