@@ -65,7 +65,7 @@ const HomeTabs = () => {
   const handleLogout = async () => {
     try {
       await Keychain.resetGenericPassword({ service: 'service_key' });
-      await Keychain.resetGenericPassword({ service: 'background_token' });
+      await Keychain.resetGenericPassword({ service: 'user_meta' });
       dispatch(logout());
     } catch (e) {
       console.warn('Logout failed', e);
@@ -141,6 +141,13 @@ const NavigatorContainer = () => {
 
   const verifyBiometric = async () => {
     try {
+      const userMetaCreds = (await Keychain.getGenericPassword({
+        service: 'user_meta',
+      })) as any;
+      const userMeta =
+        userMetaCreds && typeof userMetaCreds.password === 'string'
+          ? JSON.parse(userMetaCreds.password)
+          : null;
       const creds = (await Keychain.getGenericPassword({
         service: 'service_key',
 
@@ -149,8 +156,8 @@ const NavigatorContainer = () => {
       if (creds && typeof creds.password === 'string') {
         dispatch(
           loginAction({
-            id: authUser?.id,
-            name: authUser?.name,
+            id: userMeta?.id,
+            name: userMeta?.name,
             username: authUser?.username,
             token: creds.password,
           }),

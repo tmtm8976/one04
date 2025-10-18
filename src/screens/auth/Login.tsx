@@ -72,12 +72,9 @@ export const Login = () => {
       accessControl:
         Keychain.ACCESS_CONTROL.BIOMETRY_ANY_OR_DEVICE_PASSCODE,
       authenticationPrompt: {
-        title: 'Biometric Authentication',
+        title: 'session ended',
+        description: 'Please authenticate to continue',
       },
-    });
-
-    await Keychain.setGenericPassword(fromData.username, result.accessToken, {
-      service: 'background_token',
     });
 
     try {
